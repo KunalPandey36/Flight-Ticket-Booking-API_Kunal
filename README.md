@@ -5,7 +5,6 @@ A simple REST API for booking flight tickets, built with Spring Boot 3.2.5 and J
 ## Run the Application
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 mvn spring-boot:run
 ```
 
