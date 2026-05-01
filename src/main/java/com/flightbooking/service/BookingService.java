@@ -7,17 +7,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class BookingService {
 
-    private final List<Booking> bookings = new ArrayList<>();
+    private final List<Booking> bookings = new CopyOnWriteArrayList<>();
 
     private final Map<String, Integer> flightCapacities = Map.of(
         "AI101", 2,
         "AI202", 3,
         "AI303", 1
     );
+
+    private final ConcurrentHashMap<String, ReentrantLock> flightLocks = new ConcurrentHashMap<>();
 
     public Booking createBooking(Booking booking) {
         String flightNumber = booking.getFlightNumber();
@@ -26,16 +31,22 @@ public class BookingService {
             throw new IllegalArgumentException("Flight " + flightNumber + " not found");
         }
 
-        long bookedCount = bookings.stream()
-            .filter(b -> b.getFlightNumber().equals(flightNumber))
-            .count();
+        ReentrantLock lock = flightLocks.computeIfAbsent(flightNumber, k -> new ReentrantLock());
+        lock.lock();
+        try {
+            long bookedCount = bookings.stream()
+                .filter(b -> b.getFlightNumber().equals(flightNumber))
+                .count();
 
-        if (bookedCount >= flightCapacities.get(flightNumber)) {
-            throw new IllegalStateException("Flight " + flightNumber + " is fully booked");
+            if (bookedCount >= flightCapacities.get(flightNumber)) {
+                throw new IllegalStateException("Flight " + flightNumber + " is fully booked");
+            }
+
+            booking.setBookingId(UUID.randomUUID().toString());
+            bookings.add(booking);
+            return booking;
+        } finally {
+            lock.unlock();
         }
-
-        booking.setBookingId(UUID.randomUUID().toString());
-        bookings.add(booking);
-        return booking;
     }
 }
