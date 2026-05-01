@@ -1,0 +1,19 @@
+# Flight Booking API
+
+### Maven commands
+
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+### IDE ###
+.idea/
+*.iml
+*.iws
+.project
+.classpath
+.settings/
+.factorypath
+
+### OS ###
+.DS_Store
+Thumbs.db
