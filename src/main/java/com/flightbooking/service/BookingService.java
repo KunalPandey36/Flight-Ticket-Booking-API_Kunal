@@ -25,7 +25,10 @@ public class BookingService {
     private final ConcurrentHashMap<String, ReentrantLock> flightLocks = new ConcurrentHashMap<>();
 
     public Booking createBooking(Booking booking) {
-        String flightNumber = booking.getFlightNumber();
+        validateInput(booking);
+
+        String flightNumber = booking.getFlightNumber().trim().toUpperCase();
+        booking.setFlightNumber(flightNumber);
 
         if (!flightCapacities.containsKey(flightNumber)) {
             throw new IllegalArgumentException("Flight " + flightNumber + " not found");
@@ -47,6 +50,15 @@ public class BookingService {
             return booking;
         } finally {
             lock.unlock();
+        }
+    }
+
+    private void validateInput(Booking booking) {
+        if (booking.getFlightNumber() == null || booking.getFlightNumber().isBlank()) {
+            throw new IllegalArgumentException("Flight number is required");
+        }
+        if (booking.getPassengerName() == null || booking.getPassengerName().isBlank()) {
+            throw new IllegalArgumentException("Passenger name is required");
         }
     }
 }
