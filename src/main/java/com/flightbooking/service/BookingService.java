@@ -8,13 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class BookingService {
 
-    private final List<Booking> bookings = new CopyOnWriteArrayList<>();
+    private final ConcurrentHashMap<String, List<Booking>> flightBookings = new ConcurrentHashMap<>();
 
     private final Map<String, Integer> flightCapacities = Map.of(
         "AI101", 2,
@@ -25,33 +24,34 @@ public class BookingService {
     private final ConcurrentHashMap<String, ReentrantLock> flightLocks = new ConcurrentHashMap<>();
 
     public Booking createBooking(Booking booking) {
-        validateInput(booking);
+    validateInput(booking);
 
-        String flightNumber = booking.getFlightNumber().trim().toUpperCase();
-        booking.setFlightNumber(flightNumber);
+    String flightNumber = booking.getFlightNumber().trim().toUpperCase();
+    booking.setFlightNumber(flightNumber);
 
-        if (!flightCapacities.containsKey(flightNumber)) {
-            throw new IllegalArgumentException("Flight " + flightNumber + " not found");
-        }
-
-        ReentrantLock lock = flightLocks.computeIfAbsent(flightNumber, k -> new ReentrantLock());
-        lock.lock();
-        try {
-            long bookedCount = bookings.stream()
-                .filter(b -> b.getFlightNumber().equals(flightNumber))
-                .count();
-
-            if (bookedCount >= flightCapacities.get(flightNumber)) {
-                throw new IllegalStateException("Flight " + flightNumber + " is fully booked");
-            }
-
-            booking.setBookingId(UUID.randomUUID().toString());
-            bookings.add(booking);
-            return booking;
-        } finally {
-            lock.unlock();
-        }
+    if (!flightCapacities.containsKey(flightNumber)) {
+        throw new IllegalArgumentException("Flight " + flightNumber + " not found");
     }
+
+    ReentrantLock lock = flightLocks.computeIfAbsent(flightNumber, k -> new ReentrantLock());
+    lock.lock();
+    try {
+        List<Booking> bookingsForFlight = flightBookings.computeIfAbsent(
+            flightNumber, k -> new ArrayList<>()
+        );
+
+        if (bookingsForFlight.size() >= flightCapacities.get(flightNumber)) {
+            throw new IllegalStateException("Flight " + flightNumber + " is fully booked");
+        }
+
+        booking.setBookingId(UUID.randomUUID().toString());
+        bookingsForFlight.add(booking);
+
+        return booking;
+    } finally {
+        lock.unlock();
+    }
+}
 
     private void validateInput(Booking booking) {
         if (booking.getFlightNumber() == null || booking.getFlightNumber().isBlank()) {

@@ -2,12 +2,10 @@ package com.flightbooking.controller;
 
 import com.flightbooking.model.Booking;
 import com.flightbooking.service.BookingService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -22,6 +20,11 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<Booking> createBooking(@RequestBody Booking booking) {
         Booking created = bookingService.createBooking(booking);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
+
+        URI location = URI.create("/api/bookings/" + created.getBookingId());
+
+        return ResponseEntity
+                .created(location)
+                .body(created);
     }
 }
